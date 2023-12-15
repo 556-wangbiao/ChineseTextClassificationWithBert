@@ -1,9 +1,10 @@
 import logging
 import logging.config
 import os
+from logging.handlers import TimedRotatingFileHandler
 
 # 判断是否为调试模式
-debug_flag = True
+debug_flag = 0
 
 
 # 自定义过滤器
@@ -21,7 +22,7 @@ def logger_config(env):
         path = r'E:\my_works\WuShiMiDong\ChineseTextClassificationBert\logs\prod'  # 生产环境日志路径
 
     BASE_DIR = path
-    LOG_FORMAT = '%(asctime)s %(filename)s [line:%(lineno)d] %(levelname)s: %(message)s'
+    LOG_FORMAT = '%(asctime)s %(levelname)s [%(filename)s:%(lineno)d]: %(message)s'
 
     # 日志配置字典
     logging_config = {
@@ -35,48 +36,65 @@ def logger_config(env):
         'formatters': {
             'standard': {
                 'format': LOG_FORMAT,
+                'datefmt': '%Y-%m-%d %H:%M:%S',
             },
         },
         'handlers': {
             'console': {
-                'level': 'DEBUG',
+                'level': 'DEBUG' if debug_flag else 'INFO',
                 'class': 'logging.StreamHandler',
                 'formatter': 'standard',
                 'filters': ['require_debug_true', ]
             },
-            'info_file_handler': {
+            'file_handler': {
                 'level': 'INFO',
-                'class': 'logging.handlers.RotatingFileHandler',
+                'class': 'logging.handlers.TimedRotatingFileHandler',
                 'formatter': 'standard',
-                'filename': os.path.join(BASE_DIR, 'info.log'),
-                'maxBytes': 1024 * 1024 * 5,
-                'backupCount': 5,
-                'encoding': 'utf8',
-            },
-            'warning_file_handler': {
-                'level': 'WARNING',
-                'class': 'logging.handlers.RotatingFileHandler',
-                'formatter': 'standard',
-                'filename': os.path.join(BASE_DIR, 'warning.log'),
-                'maxBytes': 1024 * 1024 * 5,
-                'backupCount': 5,
+                'filename': os.path.join(BASE_DIR, 'app.log'),
+                'when': 'midnight',  # 每天轮换
+                'backupCount': 30,  # 保存30天的日志
+                # 'when': 'W0',  # 每周一轮换
+                # 'backupCount': 4,  # 保留4周的日志
                 'encoding': 'utf8',
             },
             'error_file_handler': {
                 'level': 'ERROR',
-                'class': 'logging.handlers.RotatingFileHandler',
+                'class': 'logging.handlers.TimedRotatingFileHandler',
                 'formatter': 'standard',
                 'filename': os.path.join(BASE_DIR, 'error.log'),
-                'maxBytes': 1024 * 1024 * 5,
-                'backupCount': 5,
+                'when': 'midnight',
+                'backupCount': 30,
+                # 'when': 'W0',  # 每周一轮换
+                # 'backupCount': 4,  # 保留4周的日志
+                'encoding': 'utf8',
+            },
+
+            # 训练日记记录
+            'training_file_handler': {
+                'level': 'INFO',
+                'class': 'logging.handlers.TimedRotatingFileHandler',
+                'formatter': 'standard',
+                'filename': os.path.join(path, 'training_log.log'),
+                'when': 'midnight',
+                'backupCount': 30,
+                # 'when': 'W0',  # 每周一轮换
+                # 'backupCount': 4,  # 保留4周的日志
                 'encoding': 'utf8',
             },
         },
+
         'loggers': {
-            '': {
-                'handlers': ['console', 'info_file_handler', 'warning_file_handler', 'error_file_handler'],
-                'level': 'DEBUG',
-                'propagate': True,
+            'app_logger': {
+                'handlers': ['console', 'file_handler', 'error_file_handler'],
+                # 'handlers': ['file_handler', 'error_file_handler'],
+                'level': 'INFO',
+                'propagate': False,
+            },
+
+            'training_logger': {
+                'handlers': ['training_file_handler'],
+                'level': 'INFO',
+                'propagate': False,
             },
         }
     }
